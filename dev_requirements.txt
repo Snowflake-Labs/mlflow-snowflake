@@ -1,0 +1,6 @@
+pytest
+mlflow
+snowflake-snowpark-python
+configobj
+xgboost
+scikit-learn
