@@ -40,11 +40,12 @@ def test_usage_logging_helper_with_all_fields():
 
     @record(fields={"a", "b", "c"}, recorder=recorder)
     def target_func1(a, b=1, *, c=2):
-        pass
+        return a
 
     # Test with defaults.
     recorder.reset()
-    target_func1(0)
+    r1 = target_func1(0)
+    assert r1 == 0
     assert recorder.fname == "target_func1"
     assert recorder.error is None
     assert recorder.fparams["a"] == "0"
@@ -53,7 +54,8 @@ def test_usage_logging_helper_with_all_fields():
     assert recorder.captured is None
     # Test with explicit parameters
     recorder.reset()
-    target_func1(99, 5, c=100)
+    r2 = target_func1(99, 5, c=100)
+    assert r2 == 99
     assert recorder.fname == "target_func1"
     assert recorder.error is None
     assert recorder.fparams["a"] == "99"

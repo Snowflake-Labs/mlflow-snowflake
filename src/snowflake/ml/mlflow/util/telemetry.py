@@ -182,8 +182,8 @@ def _usage_logging_helper(
                         params[field] = repr(extracted_value)
                 if not_found:
                     raise ValueError(f"Fields {not_found} are not found.")
-                func(*args, **kwargs)
                 error = None
+                return func(*args, **kwargs)
             except Exception as e:
                 error = repr(e)
                 raise
