@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -164,7 +165,8 @@ def _rewritten_requirements_txt(reqs: List[_Requirement], use_latest: bool):
         reqs (List[_Requirement]): List of parsed requirements.
         use_latest (bool): Whether to use latest package.
     """
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt") as f:
+    try:
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
         for r in reqs:
             if use_latest:
                 f.write(f"{r.parsed.name}\n")
@@ -172,6 +174,9 @@ def _rewritten_requirements_txt(reqs: List[_Requirement], use_latest: bool):
                 f.write(f"{r.raw}\n")
         f.flush()
         yield f
+    finally:
+        f.close()
+        os.unlink(f.name)
 
 
 def extract_package_requirements(requirements_lines, exclusions: Set[str] = None, use_latest=True) -> List[str]:
