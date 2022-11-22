@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snowflake_mlflow"
+version = "0.0.1"
+readme = "README.md"
+dependencies = [
+    'mlflow',
+    'snowflake-snowpark-python',
+    'configobj',
+]
+requires-python = "==3.8.*"
+
+[project.optional-dependencies]
+dev = ["black", "pytest"]
+
+[project.entry-points."mlflow.deployments"]
+snowflake = "snowflake.ml.mlflow.deploy"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
