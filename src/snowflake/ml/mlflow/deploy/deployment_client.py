@@ -49,6 +49,8 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
 
     def parse_config(self, config) -> Dict[str, Any]:
         """Parse input deployment configuration to conform to valid config options."""
+        if not config:
+            return dict()
         parsed = dict()
         for field in ConfigField:
             if field.value in config:
@@ -59,7 +61,9 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         """Decorator to send client usage telemetry data."""
 
         def extract_session(captured):
-            assert isinstance(captured, SnowflakeDeploymentClient)
+            assert isinstance(
+                captured, SnowflakeDeploymentClient
+            ), f"Should capture instance of `SnowflakeDeploymentClient`, but got type {type(captured)}."
             return captured._session
 
         return method_session_usage_logging_helper(fields_to_log=fields_to_log, sesssion_extractor=extract_session)
