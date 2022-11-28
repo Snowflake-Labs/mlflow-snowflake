@@ -29,28 +29,47 @@ The `CONNECTION_NAME` references the connection specified in the SnowSQL configu
 Following APIs are supported by both Python and CLI.
 | Python API | CLI |
 | ---| --- |
-| `create_deployment`  | `mlflow deployments create`  |
-| `delete_deployment`  | `mlflow deployments delete`  |
-| `get_deployment` | `mlflow deployments get`  |
+| `create_deployment(name, model_uri, flavor, config)`  | `mlflow deployments create`  |
+| `delete_deployment(name)`  | `mlflow deployments delete`  |
+| `get_deployment(name)` | `mlflow deployments get`  |
 | `list_deployments` | `mlflow deployments list`  |
+| `predict(deployment_name, df)` | `mlflow deployments predict`  |
 
-* For `create_deployment`, there's a list of available configuration options:
+*  `create_deployment`
 ```markdown
- max_batch_size (int): Max batch size for a single vectorized UDF invocation.
-     The size is not guaranteed by Snowpark.
- persist_udf_file (bool): Whether to keep the UDF file generated.
- test_data_X (pd.DataFrame): 2d dataframe used as input test data.
- test_data_y (pd.Series): 1d series used as expected prediction results.
-     During testing, model predictions are compared with the expected predictions given in `test_data_y`.
-     For comparing regression results, 1e-7 precision is used.
- use_latest_package_version (bool): Whether to use latest package versions available in Snowlfake conda channel.
-     Defaults to True. Set this flag to True will greatly increase the chance of successful deployment
-     of the model to the Snowflake warehouse.
- stage_location (str, optional): Stage location to store the UDF and dependencies(format: `@my_named_stage`).
-     It can be any stage other than temporary stages and external stages. If not specified,
-     UDF deployment is temporary and tied to the session. Default to be none.
+ Args:
+     name: Unique name to use for the deployment.
+     model_uri : URI of the model to deploy.
+     flavor (optional): Model flavor to deploy. If unspecified, will infer
+         based on model metadata. Defaults to None.
+     config (optional): Snowflake-specific configuration for the deployment.
+         Defaults to None.
+         Detailed configuration options:
+            max_batch_size (int): Max batch size for a single vectorized UDF invocation.
+                The size is not guaranteed by Snowpark.
+            persist_udf_file (bool): Whether to keep the UDF file generated.
+            test_data_X (pd.DataFrame): 2d dataframe used as input test data.
+            test_data_y (pd.Series): 1d series used as expected prediction results.
+                During testing, model predictions are compared with the expected predictions given in `test_data_y`.
+                For comparing regression results, 1e-7 precision is used.
+            use_latest_package_version (bool): Whether to use latest package versions available in Snowlfake conda channel.
+                Defaults to True. Set this flag to True will greatly increase the chance of successful deployment
+                of the model to the Snowflake warehouse.
+            stage_location (str, optional): Stage location to store the UDF and dependencies(format: `@my_named_stage`).
+                It can be any stage other than temporary stages and external stages. If not specified,
+                UDF deployment is temporary and tied to the session. Default to be none.
 ```
 Detailed configuration options for `create_deployment` could also be retrieved by  `mlflow deployments help -t snowflake`
+
+* `predict` 
+```
+Args:
+    deployment_name: Name of the deployment.
+    df: Either pandas DataFrame or Snowpark DataFrame.
+
+Returns:
+    Result as a pandas DataFrame.
+```
 
 ### Limitations
 * Has not been tested on Windows.
