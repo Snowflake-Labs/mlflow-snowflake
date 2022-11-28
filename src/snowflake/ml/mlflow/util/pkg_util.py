@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -9,14 +10,29 @@ from typing import Any, Iterable, List, NamedTuple, Optional, Set
 import pkg_resources
 
 
+class DependencyException(RuntimeError):
+    """Exception raised when error happened on dependencies."""
+
+    pass
+
+
+def validate_conda_installation():
+    """Verify if conda is installed."""
+    if shutil.which("conda") is None:
+        raise DependencyException(
+            "Could not find conda executable. "
+            "Ensure conda is installed as per the instructions "
+            "at https://docs.conda.io/en/latest/miniconda.html"
+        )
+
+
 def check_compatibility_with_snowflake_conda_channel(requirements_path: str) -> None:
     """Check if given `requirements.txt` could be satisfied against Snowflake conda channel.
-
-    #TODO(halu): Handle `conda` path.
 
     Args:
         requirements_path (str): Absolute path to requirements.txt.
     """
+    validate_conda_installation()
     res = subprocess.run(
         [
             "conda",
@@ -35,13 +51,18 @@ def check_compatibility_with_snowflake_conda_channel(requirements_path: str) -> 
         text=True,
     )
     if res.returncode != 0:
-        jres = json.loads(res.stdout)
-        pkgs = jres.get("packages")
-        ex_type = jres.get("exception_name")
+        try:
+            jres = json.loads(res.stdout)
+            pkgs = jres.get("packages")
+            ex_type = jres.get("exception_name")
+        except Exception:
+            raise DependencyException(f"Malformed response: {res.stdout}.")
         if ex_type and ex_type == "PackagesNotFoundError" and pkgs:
-            raise ValueError(f"Package requirements could not be satisfied using Snowflake channel.: {'|'.join(pkgs)}")
+            raise DependencyException(
+                f"Package requirements could not be satisfied using Snowflake channel: {'|'.join(pkgs)}."
+            )
         else:
-            raise ValueError("Package requirements could not be satisfied using Snowflake channel.")
+            raise DependencyException("Package requirements could not be satisfied using Snowflake channel.")
 
 
 class _Requirement(NamedTuple):

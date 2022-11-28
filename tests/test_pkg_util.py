@@ -1,11 +1,16 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from snowflake.ml.mlflow.util.pkg_util import (
+    DependencyException,
     _convert_to_snowflake_package_requirements,
     _parse_requirements,
     _rewritten_requirements_txt,
     _sanitize,
+    check_compatibility_with_snowflake_conda_channel,
     extract_package_requirements,
+    validate_conda_installation,
 )
 
 TEST_REQUIREMENTS = [
@@ -144,3 +149,45 @@ def test_extract_package_requirements(mock_snow_channel):
         "pkg5",
     ]
     assert res2 == expected2
+
+
+def test_validate_conda_installation_when_not_present(monkeypatch):
+    """Expect raise when conda is not installed."""
+    mock = MagicMock()
+    monkeypatch.setattr("shutil.which", mock)
+    mock.return_value = None
+    with pytest.raises(RuntimeError, match=r"Could not find conda executable.*"):
+        validate_conda_installation()
+
+
+def test_validate_conda_installation_when_present(monkeypatch):
+    mock = MagicMock()
+    monkeypatch.setattr("shutil.which", mock)
+    mock.return_value = "/opt/bin/miniconda"
+    validate_conda_installation()
+
+
+def test_check_compatibility_with_invalid_response(monkeypatch):
+    """Expect raise when response is not invalid."""
+    mock = MagicMock()
+    monkeypatch.setattr("shutil.which", mock)
+    mock.return_value = "/opt/bin/miniconda"
+    mock2 = MagicMock()
+    monkeypatch.setattr("subprocess.run", mock2)
+    mock2.return_value.stdout = "invalid"
+    with pytest.raises(DependencyException, match=r"Malformed response:.*"):
+        check_compatibility_with_snowflake_conda_channel("path")
+
+
+def test_check_compatibility_with_missing_packages(monkeypatch):
+    """Expect raise when missing packages."""
+    mock = MagicMock()
+    monkeypatch.setattr("shutil.which", mock)
+    mock.return_value = "/opt/bin/miniconda"
+    mock2 = MagicMock()
+    monkeypatch.setattr("subprocess.run", mock2)
+    mock2.return_value.stdout = '{"packages":["pkg1","pkg2"],"exception_name":"PackagesNotFoundError"}'
+    with pytest.raises(
+        DependencyException, match=r"Package requirements could not be satisfied using Snowflake channel.*"
+    ):
+        check_compatibility_with_snowflake_conda_channel("path")
