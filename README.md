@@ -61,7 +61,7 @@ Following APIs are supported by both Python and CLI.
 ```
 Detailed configuration options for `create_deployment` could also be retrieved by  `mlflow deployments help -t snowflake`
 
-* `predict` 
+* `predict`
 ```
 Args:
     deployment_name: Name of the deployment.
