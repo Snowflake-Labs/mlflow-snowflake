@@ -89,6 +89,8 @@ class TelemetryClient:
                 TelemetryField.KEY_ERROR.value: error,
             }
         self.send(message)
+        # Switch to flush per X second when there's increased usage.
+        self.flush()
 
     def flush(self):
         self._client.send_batch()
