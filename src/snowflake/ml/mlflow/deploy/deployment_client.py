@@ -90,8 +90,8 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
             raise MlflowException(f"Only {SUPPORTED_FLAVORS} flavors are supported now.")
         model_path = _download_artifact_from_uri(model_uri)
         parsed_config = self.parse_config(config)
-        upload_model_from_mlflow(self._session, model_dir_path=model_path, udf_name=name, **parsed_config)
-        self._deploy_helper.tag_deployment(name=name)
+        normalized_name = self._deploy_helper.normalize_name(name)
+        upload_model_from_mlflow(self._session, model_dir_path=model_path, udf_name=normalized_name, **parsed_config)
 
     @experimental
     @usage_logging(fields_to_log={"name", "config"})

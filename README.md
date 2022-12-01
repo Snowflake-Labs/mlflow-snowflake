@@ -71,6 +71,12 @@ Returns:
     Result as a pandas DataFrame.
 ```
 
+### Deployment Name Convention In SQL
+To use deployed model in Snowflake SQL context with name `my_model_x`, you could invoke with `MLFLOW$` prefix:
+```sql
+SELECT MLFLOW$MY_MODEL_X(col1, col2, ..., colN)
+```
+
 ### Limitations
 * Has not been tested on Windows.
 * Currently only supports `scikit-learn` and `xgboost` models.
