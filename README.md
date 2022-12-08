@@ -87,3 +87,6 @@ SELECT MLFLOW$MY_MODEL_X(col1, col2, ..., colN)
   * Recommend an fresh virtual environment with python 3.8.
 * Intall package in local editable model for development by `pip install -e .`
 * Run unit tests by `pytest tests/`
+
+## Contributing
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
