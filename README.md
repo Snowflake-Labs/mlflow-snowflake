@@ -10,7 +10,7 @@ and [CLI](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) for ML
 ### Prerequisite
 * The plugin relies on local anaconda installation to check if model dependencies could be satisfied. Suggest install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) for minimum dependencies.
 
-### Installation 
+### Installation
 Please find latest release version [here](https://github.com/Snowflake-Labs/mlflow-snowflake/releases) to download latest `wheel`.
 `pip install <local_path_to_wheel>` could install the package with name `snowflake-mlflow` for you.
 
