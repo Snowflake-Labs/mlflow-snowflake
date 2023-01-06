@@ -68,6 +68,17 @@ def test_create_deployment_with_unsupported_flavor(clean_session):
         client.create_deployment("name", "uri", flavor="tensorflow")
 
 
+def test_create_deployment_success(clean_session, monkeypatch):
+    """Expect return dict containing `name` attribute."""
+    util.set_session(clean_session)
+    monkeypatch.setattr("snowflake.ml.mlflow.deploy.deployment_client.upload_model_from_mlflow", MagicMock())
+    monkeypatch.setattr("snowflake.ml.mlflow.deploy.deployment_client._download_artifact_from_uri", MagicMock())
+    client = SnowflakeDeploymentClient("snowflake")
+    res_dict = client.create_deployment("modelx", "uri", flavor="sklearn")
+    assert "name" in res_dict and res_dict["name"] == "modelx"
+    assert "udf_name" in res_dict and res_dict["udf_name"] == "MLFLOW$MODELX"
+
+
 def test_predict_with_missing_arguments(clean_session):
     """Expect raise when missing required arguments."""
     util.set_session(clean_session)

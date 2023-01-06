@@ -83,6 +83,11 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
                 Defaults to None.
             endpoint (optional): Ignored for now.
 
+        Returns:
+            A dict containing
+                1) `name` of the deployment.
+                2) `udf_name` of the generated Snowflake UDF function.
+
         Raises:
             MlflowException: Raise if specified flavor is not supported.
         """
@@ -92,6 +97,10 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         parsed_config = self.parse_config(config)
         normalized_name = self._deploy_helper.normalize_name(name)
         upload_model_from_mlflow(self._session, model_dir_path=model_path, udf_name=normalized_name, **parsed_config)
+        return {
+            "name": name,
+            "udf_name": normalized_name,
+        }
 
     @experimental
     @usage_logging(fields_to_log={"name", "config"})
