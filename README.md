@@ -34,8 +34,8 @@ Connection parameters can be specified by adding `?connection={CONNECTION_NAME}`
 The `CONNECTION_NAME` references the connection specified in the SnowSQL configuration file e.g. `snowflake:/?connection=connections.ml`.
 
 #### Specification for target_uri
-If you are using MLflow python API and already have created Snowflake session, then `target_uri` is `snowflake` which will ensure MLflow choose Snowflake as target platform.
-If you are using MLflow CLI, then you need to specify the connection name based on your SnowSQL configuration file. In this case, your `target_uri` would be `snowflake:/?connection={connection_name}`. The library would take care creating the Snowflake session for you.
+If you are using the MLflow python API and already have created a Snowflake session, then `target_uri` is `snowflake`. 
+If you are using the MLflow CLI, you need to specify the connection name based on your SnowSQL configuration file. In this case, your `target_uri` would be `snowflake:/?connection={connection_name}`. The library would take care of creating the Snowflake session for you.
 
 
 ### Supported APIs
