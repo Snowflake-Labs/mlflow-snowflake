@@ -29,7 +29,7 @@ deployment_client = get_deploy_client(target_uri)
 
 #### SnowSQL Configuration file
 [SnowSQL Configuration file](https://docs.snowflake.com/en/user-guide/snowsql-config.html) is a familiar concept among existing SnowSQL CLI users and a neccessary way to establish connection to Snowflake if you intend to use MLflow CLI for model deployment.
-For the Snowflake deployment plugin, the `target_uri` needs to have the`snowflake` scheme.
+For the Snowflake deployment plugin, the `target_uri` needs to have the `snowflake` scheme.
 Connection parameters can be specified by adding `?connection={CONNECTION_NAME}`.
 The `CONNECTION_NAME` references the connection specified in the SnowSQL configuration file e.g. `snowflake:/?connection=connections.ml`.
 
