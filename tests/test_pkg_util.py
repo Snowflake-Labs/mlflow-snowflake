@@ -10,7 +10,7 @@ from snowflake.ml.mlflow.util.pkg_util import (
     _sanitize,
     check_compatibility_with_snowflake_conda_channel,
     extract_package_requirements,
-    validate_conda_installation,
+    has_conda_installation,
 )
 
 TEST_REQUIREMENTS = [
@@ -151,20 +151,19 @@ def test_extract_package_requirements(mock_snow_channel):
     assert res2 == expected2
 
 
-def test_validate_conda_installation_when_not_present(monkeypatch):
+def test_has_conda_installation_when_not_present(monkeypatch):
     """Expect raise when conda is not installed."""
     mock = MagicMock()
     monkeypatch.setattr("shutil.which", mock)
     mock.return_value = None
-    with pytest.raises(RuntimeError, match=r"Could not find conda executable.*"):
-        validate_conda_installation()
+    assert has_conda_installation() is False
 
 
-def test_validate_conda_installation_when_present(monkeypatch):
+def test_has_conda_installation_when_present(monkeypatch):
     mock = MagicMock()
     monkeypatch.setattr("shutil.which", mock)
     mock.return_value = "/opt/bin/miniconda"
-    validate_conda_installation()
+    assert has_conda_installation() is True
 
 
 def test_check_compatibility_with_invalid_response(monkeypatch):

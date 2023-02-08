@@ -16,14 +16,9 @@ class DependencyException(RuntimeError):
     pass
 
 
-def validate_conda_installation():
-    """Verify if conda is installed."""
-    if shutil.which("conda") is None:
-        raise DependencyException(
-            "Could not find conda executable. "
-            "Ensure conda is installed as per the instructions "
-            "at https://docs.conda.io/en/latest/miniconda.html"
-        )
+def has_conda_installation() -> bool:
+    """Check if conda is installed. Return false if not."""
+    return not shutil.which("conda") is None
 
 
 def check_compatibility_with_snowflake_conda_channel(requirements_path: str) -> None:
@@ -32,7 +27,9 @@ def check_compatibility_with_snowflake_conda_channel(requirements_path: str) -> 
     Args:
         requirements_path (str): Absolute path to requirements.txt.
     """
-    validate_conda_installation()
+    if not has_conda_installation():
+        return
+
     res = subprocess.run(
         [
             "conda",
