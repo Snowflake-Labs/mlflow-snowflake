@@ -60,14 +60,6 @@ def test_parse_config_when_none(clean_session):
     assert res == {}
 
 
-def test_create_deployment_with_unsupported_flavor(clean_session):
-    """Expect raise when specifying unsupported model flavor."""
-    util.set_session(clean_session)
-    client = SnowflakeDeploymentClient("snowflake")
-    with pytest.raises(MlflowException, match=r".+flavors are supported now."):
-        client.create_deployment("name", "uri", flavor="tensorflow")
-
-
 def test_create_deployment_success(clean_session, monkeypatch):
     """Expect return dict containing `name` attribute."""
     util.set_session(clean_session)

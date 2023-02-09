@@ -32,7 +32,7 @@ def skl_mlflow_model_path(skl_model, tmp_path):
     )
 
 
-def test_skl(skl_mlflow_model_path, skl_model, udf_server):
+def test_skl(skl_mlflow_model_path, skl_model, udf_server, tmp_path):
     """E2E test to make sure model upload works for sklearn model."""
     from snowflake.snowpark import Session
 
@@ -43,13 +43,14 @@ def test_skl(skl_mlflow_model_path, skl_model, udf_server):
     udf_server.validate(
         session=session,
         model_path=skl_mlflow_model_path,
+        tmp_path=tmp_path,
         model=skl_model,
         udf_name=udf_name,
         packages=["scikit-learn"],
     )
 
 
-def test_skl_with_correct_test_data(skl_mlflow_model_path, skl_model, udf_server):
+def test_skl_with_correct_test_data(skl_mlflow_model_path, skl_model, udf_server, tmp_path):
     """E2E test with test data assertion passing."""
     from snowflake.snowpark import Session
 
@@ -68,13 +69,14 @@ def test_skl_with_correct_test_data(skl_mlflow_model_path, skl_model, udf_server
     udf_server.validate(
         session=session,
         model_path=skl_mlflow_model_path,
+        tmp_path=tmp_path,
         model=skl_model,
         udf_name=udf_name,
         packages=["scikit-learn"],
     )
 
 
-def test_skl_with_wrong_test_data(skl_mlflow_model_path, skl_model, udf_server):
+def test_skl_with_wrong_test_data(skl_mlflow_model_path, skl_model, udf_server, tmp_path):
     """Expect raise if test data could not match during inference setup."""
     from snowflake.snowpark import Session
 
@@ -94,6 +96,7 @@ def test_skl_with_wrong_test_data(skl_mlflow_model_path, skl_model, udf_server):
         udf_server.validate(
             session=session,
             model_path=skl_mlflow_model_path,
+            tmp_path=tmp_path,
             model=skl_model,
             udf_name=udf_name,
             packages=["scikit-learn"],

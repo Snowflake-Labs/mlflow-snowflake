@@ -9,7 +9,6 @@ from mlflow.exceptions import MlflowException
 from mlflow.tracking.artifact_utils import _download_artifact_from_uri
 from mlflow.utils.annotations import experimental
 
-from snowflake.ml.mlflow.deploy.constants import SUPPORTED_FLAVORS
 from snowflake.ml.mlflow.deploy.management_util import DeploymentHelper
 from snowflake.ml.mlflow.deploy.udf_util import upload_model_from_mlflow
 from snowflake.ml.mlflow.session_util import _resolve_session
@@ -88,11 +87,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
                 1) `name` of the deployment.
                 2) `udf_name` of the generated Snowflake UDF function.
 
-        Raises:
-            MlflowException: Raise if specified flavor is not supported.
         """
-        if flavor and flavor not in SUPPORTED_FLAVORS:
-            raise MlflowException(f"Only {SUPPORTED_FLAVORS} flavors are supported now.")
         model_path = _download_artifact_from_uri(model_uri)
         parsed_config = self.parse_config(config)
         normalized_name = self._deploy_helper.normalize_name(name)

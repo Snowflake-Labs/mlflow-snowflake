@@ -1,15 +1,14 @@
 import logging
 import os
 import tempfile
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
 from mlflow.exceptions import MlflowException
 from mlflow.models import Model
+from mlflow.pyfunc import FLAVOR_NAME as PYFUNC_FLAVOR_NAME
 
-from snowflake.ml.mlflow.deploy.constants import SKL_FLAVOR, XGB_FLAVOR
 from snowflake.ml.mlflow.util.pkg_util import extract_package_requirements
 from snowflake.snowpark import Session
 from snowflake.snowpark.types import (
@@ -25,12 +24,6 @@ from snowflake.snowpark.types import (
 _logger = logging.getLogger(__name__)
 _MLMODEL_FILE_NAME = "MLmodel"
 _REQUIREMENTS_TXT = "requirements.txt"
-_SERIALIZATION_FORMAT_PICKLE = "pickle"
-_SERIALIZATION_FORMAT_CLOUDPICKLE = "cloudpickle"
-_SUPPORTED_SERIALIZATION_FORMATS = [
-    _SERIALIZATION_FORMAT_PICKLE,
-    _SERIALIZATION_FORMAT_CLOUDPICKLE,
-]
 _DTYPE_TYPE_MAPPING = {
     np.dtype("float64"): FloatType(),
     np.dtype("float32"): FloatType(),
@@ -41,24 +34,49 @@ _DTYPE_TYPE_MAPPING = {
     np.dtype("bytes"): ByteType(),
 }
 
-# `extra_statements` is used for module level one time set up
-# `load_expression` returns a model-like object with `predict(df: Dataframe)`
-# `model_rel_path` is the relative path under model artifact directory
+# `model_dir_name` is the directory name of the model
+# `col_statement` is used to assign dataframe columns
 # `max_batch_size_string` is the max batch size
 # `test_statements` used for model deploy regression test before start of inference
 _UDF_CODE_TEMPLATE = """
 import pandas as pd
 import sys
+import os
+import fcntl
+import threading
+import zipfile
+import mlflow
+import uuid
 from _snowflake import vectorized
-{extra_statements}
+
+class FileLock:
+   def __enter__(self):
+      self._lock = threading.Lock()
+      self._lock.acquire()
+      self._fd = open('/tmp/lockfile.LOCK', 'w+')
+      fcntl.lockf(self._fd, fcntl.LOCK_EX)
+
+   def __exit__(self, type, value, traceback):
+      self._fd.close()
+      self._lock.release()
 
 IMPORT_DIRECTORY_NAME = "snowflake_import_directory"
 import_dir = sys._xoptions[IMPORT_DIRECTORY_NAME]
-with open(import_dir + '{model_rel_path}', "rb") as f:
-    model = {load_expression}
+model_dir_name = '{model_dir_name}'
+zip_model_path = os.path.join(import_dir, '{model_dir_name}.zip')
+# only tmp is writable.
+extracted = os.path.join('/tmp/', str(uuid.uuid4()))
+extracted_model_dir_path = os.path.join(extracted, model_dir_name)
+
+with FileLock():
+    if not os.path.isdir(extracted_model_dir_path):
+        with zipfile.ZipFile(zip_model_path, 'r') as myzip:
+            myzip.extractall(extracted)
+model = mlflow.pyfunc.load_model(extracted_model_dir_path)
 
 @vectorized(input=pd.DataFrame, max_batch_size={max_batch_size_string})
 def infer(df):
+    {col_statement}
     ans = model.predict(df)
     return pd.Series(ans)
 
@@ -79,7 +97,7 @@ np.testing.assert_almost_equal(_test_y.to_numpy(), infer(_test_X).to_numpy())
 """
 
 
-class InferUDFHelperBase(ABC):
+class InferUDFHelper:
     def __init__(
         self, model_path: str, name: str, use_latest_package_version: bool, stage_location: Optional[str]
     ) -> None:
@@ -93,7 +111,6 @@ class InferUDFHelperBase(ABC):
         )
         self._stage_location = stage_location
 
-    @abstractmethod
     def generate_udf(
         self,
         *,
@@ -112,19 +129,27 @@ class InferUDFHelperBase(ABC):
             test_data_X (Optional[pd.DataFrame]): Test input data as 2d dataframe.
             test_data_y (Optional[pd.Series]): Test prediction data as series.
         """
-        pass
+        self._autogen_model_infer_udf(
+            session,
+            self._model_conf.signature,
+            self._model_path,
+            self._name,
+            packages=self._pkg_requirements,
+            stage_location=self._stage_location,
+            max_batch_size=max_batch_size,
+            persist_udf_file=persist_udf_file,
+            test_data_X=test_data_X,
+            test_data_y=test_data_y,
+        )
 
     @staticmethod
     def _autogen_model_infer_udf(
         session,
         model_signature,
         model_full_path: str,
-        model_rel_path: str,
         udf_name: str,
         packages: List[str],
         stage_location: Optional[str],
-        model_load_expression: str,
-        extra_statements: str = "",
         max_batch_size=None,
         persist_udf_file=False,
         test_data_X=None,
@@ -140,19 +165,24 @@ class InferUDFHelperBase(ABC):
             serialized_dx = test_data_X.to_json()
             serialized_dy = test_data_y.to_json()
             test_statements = _MODEL_TEST_TEMPLATE.format(serialized_dx=serialized_dx, serialized_dy=serialized_dy)
+        model_dir_name = model_dir_name = os.path.basename(os.path.abspath(model_full_path))
+        col_statement = ""
+        # Only set column names if `ColSpec`
+        if model_signature.inputs.has_input_names():
+            col_names = model_signature.inputs.input_names()
+            col_statement = f"df.columns = {col_names}"
 
         udf_code = _UDF_CODE_TEMPLATE.format(
-            model_rel_path=model_rel_path,
-            extra_statements=extra_statements,
-            load_expression=model_load_expression,
+            model_dir_name=model_dir_name,
             max_batch_size_string=max_batch_size_string,
             test_statements=test_statements,
+            col_statement=col_statement,
         )
         is_permanent = False
         if stage_location:
             is_permanent = True
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=not persist_udf_file) as f:
-            final_packages = ["pandas"]
+            final_packages = ["pandas", "mlflow"]
             if packages:
                 final_packages = final_packages + packages
             f.write(udf_code)
@@ -171,159 +201,6 @@ class InferUDFHelperBase(ABC):
                 stage_location=stage_location,
                 is_permanent=is_permanent,
             )
-
-
-class SKLUDFHelper(InferUDFHelperBase):
-    def __init__(
-        self, model_path: str, name: str, use_latest_package_version: bool, stage_location: Optional[str]
-    ) -> None:
-        super().__init__(
-            model_path=model_path,
-            name=name,
-            use_latest_package_version=use_latest_package_version,
-            stage_location=stage_location,
-        )
-
-    def _get_skl_model_info(self):
-        flavor = self._model_conf.flavors[SKL_FLAVOR]
-        model_artifact_path = os.path.join(self._model_path, flavor["pickled_model"])
-        ser_format = flavor.get("serialization_format")
-        if ser_format not in _SUPPORTED_SERIALIZATION_FORMATS:
-            raise MlflowException("Only pickle and cloudpickle are supported as serialization format.")
-        return (
-            model_artifact_path,
-            flavor["pickled_model"],
-            ser_format,
-        )
-
-    def generate_udf(
-        self,
-        *,
-        session: Session,
-        max_batch_size: Optional[int],
-        persist_udf_file: bool,
-        test_data_X: Optional[pd.DataFrame],
-        test_data_y: Optional[pd.Series],
-    ):
-        (
-            model_full_path,
-            model_relative_path,
-            serialization_format,
-        ) = self._get_skl_model_info()
-        if serialization_format == _SERIALIZATION_FORMAT_CLOUDPICKLE:
-            extra_statements = "import cloudpickle"
-            load_expression = "cloudpickle.load(f)"
-        else:
-            extra_statements = ""
-            load_expression = "pickle.load(f)"
-
-        self._autogen_model_infer_udf(
-            session=session,
-            model_signature=self._model_conf.signature,
-            model_full_path=model_full_path,
-            model_rel_path=model_relative_path,
-            udf_name=self._name,
-            packages=self._pkg_requirements,
-            stage_location=self._stage_location,
-            model_load_expression=load_expression,
-            extra_statements=extra_statements,
-            max_batch_size=max_batch_size,
-            persist_udf_file=persist_udf_file,
-            test_data_X=test_data_X,
-            test_data_y=test_data_y,
-        )
-
-
-class XGBUDFHelper(InferUDFHelperBase):
-    def __init__(
-        self, model_path: str, name: str, use_latest_package_version: bool, stage_location: Optional[str]
-    ) -> None:
-        super().__init__(
-            model_path=model_path,
-            name=name,
-            use_latest_package_version=use_latest_package_version,
-            stage_location=stage_location,
-        )
-
-    def _get_model_info(self):
-        flavor = self._model_conf.flavors[XGB_FLAVOR]
-        model_class = flavor.get("model_class", "xgboost.core.Booster")
-        model_artifact_path = os.path.join(self._model_path, flavor["data"])
-        return (model_artifact_path, flavor["data"], model_class)
-
-    def generate_udf(
-        self,
-        *,
-        session: Session,
-        max_batch_size: Optional[int],
-        persist_udf_file: bool,
-        test_data_X: Optional[pd.DataFrame],
-        test_data_y: Optional[pd.Series],
-    ):
-        (
-            model_full_path,
-            model_relative_path,
-            model_class,
-        ) = self._get_model_info()
-
-        extra_statements = f"""
-import importlib
-import xgboost as xgb
-def _get_class_from_string(fully_qualified_class_name):
-    module, class_name = fully_qualified_class_name.rsplit(".", maxsplit=1)
-    return getattr(importlib.import_module(module), class_name)
-
-model_instance = _get_class_from_string("{model_class}")()
-
-def wrapper(model_path):
-    model_instance.load_model(f.name)
-    class _Wrapper:
-        def __init__(self, model):
-            self._model = model
-
-        def predict(self, df):
-            if isinstance(self._model, xgb.Booster):
-                return self._model.predict(xgb.DMatrix(df), validate_features=False)
-            else:
-                return self._model.predict(df)
-
-    return _Wrapper(model=model_instance)
-        """
-
-        load_expression = """wrapper(f.name)
-        """
-        self._autogen_model_infer_udf(
-            session=session,
-            model_signature=self._model_conf.signature,
-            model_full_path=model_full_path,
-            model_rel_path=model_relative_path,
-            udf_name=self._name,
-            packages=self._pkg_requirements,
-            stage_location=self._stage_location,
-            model_load_expression=load_expression,
-            extra_statements=extra_statements,
-            max_batch_size=max_batch_size,
-            persist_udf_file=persist_udf_file,
-            test_data_X=test_data_X,
-            test_data_y=test_data_y,
-        )
-
-
-def _udf_helper_factory(
-    flavors: Dict[str, Any],
-    mlflow_model_dir_path: str,
-    udf_name: str,
-    use_latest_package_version: bool,
-    stage_location: Optional[str],
-) -> InferUDFHelperBase:
-    if not flavors:
-        raise MlflowException("No flavor is specified for model deployment.")
-    if SKL_FLAVOR in flavors:
-        return SKLUDFHelper(mlflow_model_dir_path, udf_name, use_latest_package_version, stage_location)
-    elif XGB_FLAVOR in flavors:
-        return XGBUDFHelper(mlflow_model_dir_path, udf_name, use_latest_package_version, stage_location)
-    else:
-        raise MlflowException(f"{flavors.keys()} flavors are not supported.")
 
 
 def _handle_package_versions(requirements_path: str, use_latest_package_version: bool) -> List[str]:
@@ -389,13 +266,12 @@ def upload_model_from_mlflow(
             raise MlflowException("Test data dimension mis-match.")
     elif is_test_data_X_set != is_test_data_y_set:
         raise MlflowException("Both input & output test data needs to be specified.")
-    _udf_helper_factory(
-        model_conf.flavors,
-        model_dir_path,
-        udf_name,
-        use_latest_package_version,
-        stage_location,
-    ).generate_udf(
+    flavors = model_conf.flavors
+    if not flavors:
+        raise MlflowException("No flavor is specified for model deployment.")
+    if PYFUNC_FLAVOR_NAME not in flavors:
+        raise MlflowException(f"{flavors.keys()} flavors are not supported.")
+    InferUDFHelper(model_dir_path, udf_name, use_latest_package_version, stage_location).generate_udf(
         session=session,
         max_batch_size=max_batch_size,
         persist_udf_file=persist_udf_file,

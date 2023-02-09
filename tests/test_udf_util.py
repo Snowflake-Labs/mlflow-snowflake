@@ -59,7 +59,7 @@ class TestUploadModelFromMLflow:
         sig = ModelSignature(inputs=inputs, outputs=outputs)
         config_path = tmp_path / "MLmodel"
         config_path.touch()
-        flavors = {"python_function": {"model_path": "/tmp/fun"}}
+        flavors = {"test": {"model_path": "/tmp/fun"}}
         Model(flavors=flavors, signature=sig).save(config_path)
         with pytest.raises(MlflowException, match=r".*flavors are not supported.*"):
             upload_model_from_mlflow(Session(), model_dir_path=tmp_path, udf_name="nvm")

@@ -7,6 +7,8 @@ from typing import Any, Callable, List, NamedTuple
 from unittest.mock import MagicMock
 
 import mlflow
+import numpy as np
+import pandas as pd
 import pytest
 from mlflow.models import Model, infer_signature
 from mlflow.models.model import ModelInfo
@@ -14,6 +16,8 @@ from mlflow.tracking.artifact_utils import _download_artifact_from_uri
 from mlflow.utils.file_utils import TempDir
 
 from snowflake.ml.mlflow import session_util as util
+
+MODLE_NAME = "tst_model"
 
 
 def _load_module_from_file(name: str, path: str):
@@ -127,25 +131,35 @@ def udf_server(session) -> IUDFServer:
             *,
             session,
             model_path: str,
+            tmp_path: str,
             model: ModelWithData,
             udf_name: str,
             packages: List[str],
         ):
             session.udf.register_from_file.assert_called_once()
             cargs = session.udf.register_from_file.call_args
-            assert set(cargs.kwargs["packages"]) == set(["pandas"] + packages)
+            assert set(cargs.kwargs["packages"]) == set(["pandas", "mlflow"] + packages)
             assert cargs.kwargs["name"] == udf_name
             assert len(cargs.kwargs["imports"]) == 1
             # set up the file
             udf_code_path = cargs.kwargs["file_path"]
             IMPORT_DIRECTORY_NAME = "snowflake_import_directory"
-            sys._xoptions[IMPORT_DIRECTORY_NAME] = model_path
+            # set up the zipfile
+            import zipfile
+
+            with zipfile.ZipFile(os.path.join(tmp_path, f"{MODLE_NAME}.zip"), "w", zipfile.ZIP_DEFLATED) as zipf:
+                for root, _dirs, files in os.walk(model_path):
+                    for file in files:
+                        zipf.write(
+                            os.path.join(root, file),
+                            os.path.relpath(os.path.join(root, file), os.path.join(model_path, "..")),
+                        )
+            # set up path
+            sys._xoptions[IMPORT_DIRECTORY_NAME] = tmp_path
             # set up the module
             _new_module_from_source_string("_snowflake", _VECTORIZED_DECORATOR_TEMPLATE)
             infer_module = _load_module_from_file("infer_module", udf_code_path)
-            import numpy as np
-
-            np.testing.assert_equal(model.predictions, infer_module.infer(model.x))
+            np.testing.assert_equal(model.predictions, infer_module.infer(pd.DataFrame(model.x)))
 
     return _MockUDFServer()
 
@@ -168,7 +182,7 @@ def build_mlflow_model(
     """
     with TempDir(chdr=True, remove_on_exit=True):
         with mlflow.start_run():
-            ARTIFACT_PATH = "model"
+            ARTIFACT_PATH = MODLE_NAME
             sig = infer_signature(model.x, model.predictions)
             model_info = log_func(
                 model.model,
