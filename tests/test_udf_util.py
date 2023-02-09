@@ -61,7 +61,7 @@ class TestUploadModelFromMLflow:
         config_path.touch()
         flavors = {"test": {"model_path": "/tmp/fun"}}
         Model(flavors=flavors, signature=sig).save(config_path)
-        with pytest.raises(MlflowException, match=r".*flavors are not supported.*"):
+        with pytest.raises(MlflowException, match=r"python_function flavor is required\."):
             upload_model_from_mlflow(Session(), model_dir_path=tmp_path, udf_name="nvm")
 
     def test_no_flavors(self, session, tmp_path):
