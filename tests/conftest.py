@@ -138,7 +138,7 @@ def udf_server(session) -> IUDFServer:
         ):
             session.udf.register_from_file.assert_called_once()
             cargs = session.udf.register_from_file.call_args
-            assert set(cargs.kwargs["packages"]) == set(["pandas", "mlflow"] + packages)
+            assert set(cargs.kwargs["packages"]) == set(["pandas", "mlflow", "filelock"] + packages)
             assert cargs.kwargs["name"] == udf_name
             assert len(cargs.kwargs["imports"]) == 1
             # set up the file

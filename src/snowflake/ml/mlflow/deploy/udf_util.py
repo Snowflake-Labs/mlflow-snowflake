@@ -42,23 +42,13 @@ _UDF_CODE_TEMPLATE = """
 import pandas as pd
 import sys
 import os
-import fcntl
+from filelock import FileLock
 import threading
 import zipfile
 import mlflow
 import uuid
 from _snowflake import vectorized
 
-class FileLock:
-   def __enter__(self):
-      self._lock = threading.Lock()
-      self._lock.acquire()
-      self._fd = open('/tmp/lockfile.LOCK', 'w+')
-      fcntl.lockf(self._fd, fcntl.LOCK_EX)
-
-   def __exit__(self, type, value, traceback):
-      self._fd.close()
-      self._lock.release()
 
 IMPORT_DIRECTORY_NAME = "snowflake_import_directory"
 import_dir = sys._xoptions[IMPORT_DIRECTORY_NAME]
@@ -68,7 +58,7 @@ zip_model_path = os.path.join(import_dir, '{model_dir_name}.zip')
 extracted = os.path.join('/tmp/', str(uuid.uuid4()))
 extracted_model_dir_path = os.path.join(extracted, model_dir_name)
 
-with FileLock():
+with FileLock('/tmp/lockfile.LOCK'):
     if not os.path.isdir(extracted_model_dir_path):
         with zipfile.ZipFile(zip_model_path, 'r') as myzip:
             myzip.extractall(extracted)
@@ -182,7 +172,7 @@ class InferUDFHelper:
         if stage_location:
             is_permanent = True
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=not persist_udf_file) as f:
-            final_packages = ["pandas", "mlflow"]
+            final_packages = ["pandas", "mlflow", "filelock"]
             if packages:
                 final_packages = final_packages + packages
             f.write(udf_code)
