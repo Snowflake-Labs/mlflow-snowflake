@@ -156,7 +156,7 @@ class InferUDFHelper:
             serialized_dx = test_data_X.to_json()
             serialized_dy = test_data_y.to_json()
             test_statements = _MODEL_TEST_TEMPLATE.format(serialized_dx=serialized_dx, serialized_dy=serialized_dy)
-        model_dir_name = model_dir_name = os.path.basename(os.path.abspath(model_full_path))
+        model_dir_name = os.path.basename(os.path.abspath(model_full_path))
         col_statement = ""
         # Only set column names if `ColSpec`
         if model_signature.inputs.has_input_names():
@@ -261,7 +261,7 @@ def upload_model_from_mlflow(
     if not flavors:
         raise MlflowException("No flavor is specified for model deployment.")
     if PYFUNC_FLAVOR_NAME not in flavors:
-        raise MlflowException(f"{flavors.keys()} flavors are not supported.")
+        raise MlflowException("python_function flavor is required.")
     InferUDFHelper(model_dir_path, udf_name, use_latest_package_version, stage_location).generate_udf(
         session=session,
         max_batch_size=max_batch_size,
