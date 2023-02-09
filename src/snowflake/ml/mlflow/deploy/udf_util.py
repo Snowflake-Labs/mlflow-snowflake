@@ -47,6 +47,7 @@ import threading
 import zipfile
 import mlflow
 import uuid
+import tempfile
 from _snowflake import vectorized
 
 
@@ -55,10 +56,10 @@ import_dir = sys._xoptions[IMPORT_DIRECTORY_NAME]
 model_dir_name = '{model_dir_name}'
 zip_model_path = os.path.join(import_dir, '{model_dir_name}.zip')
 # only tmp is writable.
-extracted = os.path.join('/tmp/', str(uuid.uuid4()))
+extracted = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
 extracted_model_dir_path = os.path.join(extracted, model_dir_name)
 
-with FileLock('/tmp/lockfile.LOCK'):
+with FileLock(os.path.join(tempfile.gettempdir(), 'lockfile.LOCK')):
     if not os.path.isdir(extracted_model_dir_path):
         with zipfile.ZipFile(zip_model_path, 'r') as myzip:
             myzip.extractall(extracted)
