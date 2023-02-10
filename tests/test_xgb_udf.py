@@ -55,6 +55,7 @@ def _common_validations(
     session,
     model,
     model_path,
+    root_path,
     udf_server,
     test_data_X=None,
     test_data_y=None,
@@ -71,30 +72,35 @@ def _common_validations(
     udf_server.validate(
         session=session,
         model_path=model_path,
+        tmp_path=root_path,
         model=model,
         udf_name=udf_name,
         packages=["xgboost"],
     )
 
 
-def test_xgb_native_with_test_data(xgb_mlflow_model_path, xgb_model, udf_server):
+def test_xgb_native_with_test_data(xgb_mlflow_model_path, xgb_model, udf_server, tmp_path):
     from snowflake.snowpark import Session
 
     session = Session()
     test_data_X = pd.DataFrame(np.array([[5.1, 3.5]]))
     test_data_y = pd.Series(np.array([0.01457067]))
-    _common_validations(session, xgb_model, xgb_mlflow_model_path, udf_server, test_data_X, test_data_y)
+    _common_validations(session, xgb_model, xgb_mlflow_model_path, tmp_path, udf_server, test_data_X, test_data_y)
 
 
-def test_xgb_with_skl_api(xgb_with_skl_api_mlflow_model_path, xgb_with_skl_api_model, udf_server):
+def test_xgb_with_skl_api(xgb_with_skl_api_mlflow_model_path, xgb_with_skl_api_model, udf_server, tmp_path):
+    import os
+
+    from snowflake.snowpark import Session
+
+    p1 = os.path.join(tmp_path, "t1")
+    os.makedirs(p1)
+    session = Session()
+    _common_validations(session, xgb_with_skl_api_model, xgb_with_skl_api_mlflow_model_path, p1, udf_server)
+
+
+def test_xgb_native(xgb_mlflow_model_path, xgb_model, udf_server, tmp_path):
     from snowflake.snowpark import Session
 
     session = Session()
-    _common_validations(session, xgb_with_skl_api_model, xgb_with_skl_api_mlflow_model_path, udf_server)
-
-
-def test_xgb_native(xgb_mlflow_model_path, xgb_model, udf_server):
-    from snowflake.snowpark import Session
-
-    session = Session()
-    _common_validations(session, xgb_model, xgb_mlflow_model_path, udf_server)
+    _common_validations(session, xgb_model, xgb_mlflow_model_path, tmp_path, udf_server)
