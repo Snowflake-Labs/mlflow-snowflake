@@ -166,10 +166,10 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         """
         if not deployment_name:
             raise MlflowException("deployment_name is missing.")
-        if not df:
+        if df is None:
             raise MlflowException("df is missing.")
         if isinstance(df, pd.DataFrame):
-            df = self.session.create_dataframe(df)
+            df = self._session.create_dataframe(df)
         normalized_name = self._deploy_helper.normalize_name(deployment_name)
         return df.select(F.call_udf(normalized_name, *[F.col(x) for x in df.columns])).to_pandas()
 
