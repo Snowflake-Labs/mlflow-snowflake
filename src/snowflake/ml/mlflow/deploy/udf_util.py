@@ -148,8 +148,16 @@ class InferUDFHelper:
     ):
         output_type = model_signature.outputs.numpy_types()[0]
         input_types = model_signature.inputs.numpy_types()
-        snowpark_input_types = [_DTYPE_TYPE_MAPPING[dt] for dt in input_types]
-        snowpark_output_type = _DTYPE_TYPE_MAPPING[output_type]
+        try:
+            snowpark_input_types = [_DTYPE_TYPE_MAPPING[dt] for dt in input_types]
+        except KeyError as key_error:
+            key_error.args = (*key_error.args, "Invalid datatype encountered in input model signature. Valid types are:", *_DTYPE_TYPE_MAPPING.keys())
+            raise key_error
+        try:
+            snowpark_output_type = _DTYPE_TYPE_MAPPING[output_type]
+        except KeyError as key_error:
+            key_error.args = (*key_error.args, "Invalid datatype encountered in output model signature. Valid types are:", *_DTYPE_TYPE_MAPPING.keys())
+            raise key_error
         max_batch_size_string = "None" if max_batch_size is None else f"{max_batch_size}"
         test_statements = ""
         if test_data_X is not None:
