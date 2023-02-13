@@ -12,6 +12,9 @@ and [CLI](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) for ML
 Please find latest release version [here](https://github.com/Snowflake-Labs/mlflow-snowflake/releases) to download latest `wheel`.
 `pip install <local_path_to_wheel>` could install the package with name `snowflake-mlflow` for you.
 
+### E2E Examples
+Please take a look of the example notebooks [here](/examples).
+
 ### Session connection
 Two ways of connection are supported to establish a Snowflake session for model deployment.
 #### Python API
