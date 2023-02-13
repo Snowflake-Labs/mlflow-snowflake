@@ -27,3 +27,6 @@ node_modules
 htmlcov/
 .coverage
 .coverage.*
+
+examples/mlruns
+examples/.ipynb_checkpoints/
