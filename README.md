@@ -7,8 +7,6 @@ This plugin implements the [Python API](https://www.mlflow.org/docs/latest/pytho
 and [CLI](https://www.mlflow.org/docs/latest/cli.html#mlflow-deployments) for MLflow deployment plugins.
 
 ## Usage
-### Prerequisite
-* The plugin relies on local anaconda installation to check if model dependencies could be satisfied. Suggest install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) for minimum dependencies.
 
 ### Installation
 Please find latest release version [here](https://github.com/Snowflake-Labs/mlflow-snowflake/releases) to download latest `wheel`.
@@ -26,7 +24,6 @@ target_uri = 'snowflake'
 deployment_client = get_deploy_client(target_uri)
 ```
 
-
 #### SnowSQL Configuration file
 [SnowSQL Configuration file](https://docs.snowflake.com/en/user-guide/snowsql-config.html) is a familiar concept among existing SnowSQL CLI users and a neccessary way to establish connection to Snowflake if you intend to use MLflow CLI for model deployment.
 For the Snowflake deployment plugin, the `target_uri` needs to have the `snowflake` scheme.
@@ -34,7 +31,7 @@ Connection parameters can be specified by adding `?connection={CONNECTION_NAME}`
 The `CONNECTION_NAME` references the connection specified in the SnowSQL configuration file e.g. `snowflake:/?connection=connections.ml`.
 
 #### Specification for target_uri
-If you are using the MLflow python API and already have created a Snowflake session, then `target_uri` is `snowflake`. 
+If you are using the MLflow python API and already have created a Snowflake session, then `target_uri` is `snowflake`.
 If you are using the MLflow CLI, you need to specify the connection name based on your SnowSQL configuration file. In this case, your `target_uri` would be `snowflake:/?connection={connection_name}`. The library would take care of creating the Snowflake session for you.
 
 
@@ -84,15 +81,25 @@ Returns:
     Result as a pandas DataFrame.
 ```
 
+### Supported Model types
+The following list is last updated on 02/13/2023. If your intended model type is not supported below, please feel free to reach out by creating an issue.
+* keras
+* pytorch
+* sklearn
+* tensorflow
+* onnx
+* xgboost
+* lightgbm
+* spaCy
+* statsmodels
+* pmdarima
+* prophet
+
 ### Deployment Name Convention In SQL
 To use deployed model in Snowflake SQL context with name `my_model_x`, you could invoke with `MLFLOW$` prefix:
 ```sql
 SELECT MLFLOW$MY_MODEL_X(col1, col2, ..., colN)
 ```
-
-### Limitations
-* Has not been tested on Windows.
-* Currently only supports `scikit-learn` and `xgboost` models.
 
 ## Development Setup
 * Clone the repo locally.
