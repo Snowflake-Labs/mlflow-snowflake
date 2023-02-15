@@ -90,7 +90,11 @@ np.testing.assert_almost_equal(_test_y.to_numpy(), infer(_test_X).to_numpy())
 
 class InferUDFHelper:
     def __init__(
-        self, model_path: str, name: str, use_latest_package_version: bool, stage_location: Optional[str]
+        self,
+        model_path: str,
+        name: str,
+        use_latest_package_version: bool,
+        stage_location: Optional[str],
     ) -> None:
         self._model_path = model_path
         self._name = name
@@ -151,13 +155,17 @@ class InferUDFHelper:
         try:
             snowpark_input_types = [_DTYPE_TYPE_MAPPING[dt] for dt in input_types]
         except KeyError as key_error:
-            key_error.args = (*key_error.args, "Invalid datatype encountered in input model signature. Valid types are:", *_DTYPE_TYPE_MAPPING.keys())
-            raise key_error
+            raise MlflowException(
+                "Invalid datatype encountered in input model signature. Valid types are:",
+                *_DTYPE_TYPE_MAPPING.keys(),
+            ) from key_error
         try:
             snowpark_output_type = _DTYPE_TYPE_MAPPING[output_type]
         except KeyError as key_error:
-            key_error.args = (*key_error.args, "Invalid datatype encountered in output model signature. Valid types are:", *_DTYPE_TYPE_MAPPING.keys())
-            raise key_error
+            raise MlflowException(
+                "Invalid datatype encountered in output model signature. Valid types are:",
+                *_DTYPE_TYPE_MAPPING.keys(),
+            ) from key_error
         max_batch_size_string = "None" if max_batch_size is None else f"{max_batch_size}"
         test_statements = ""
         if test_data_X is not None:
