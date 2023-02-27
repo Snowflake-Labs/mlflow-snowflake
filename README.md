@@ -81,7 +81,7 @@ Args:
     df: Either pandas DataFrame or Snowpark DataFrame.
 
 Returns:
-    Result as a pandas DataFrame.
+    Result as a pandas DataFrame or Snowpark DataFrame.
 ```
 
 ### Supported Model types

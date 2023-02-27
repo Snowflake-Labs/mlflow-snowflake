@@ -158,7 +158,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
             endpoint (optional): Ignored for now. Defaults to None.
 
         Returns:
-            Result as a pandas DataFrame.
+            Result as a pandas DataFrame if df is a pandas DataFrame, else a Snowpark DataFrame.
 
         Raises:
             MlflowException: Raise if `deployment_name` is not specified.
@@ -171,7 +171,10 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         if isinstance(df, pd.DataFrame):
             df = self._session.create_dataframe(df)
         normalized_name = self._deploy_helper.normalize_name(deployment_name)
-        return df.select(F.call_udf(normalized_name, *[F.col(x) for x in df.columns])).to_pandas()
+        result = df.select(F.call_udf(normalized_name, *[F.col(x) for x in df.columns]))
+        if isinstance(df, pd.DataFrame):
+            return result.to_pandas()
+        return result
 
     @experimental
     def update_deployment(self, name, model_uri=None, flavor=None, config=None, endpoint=None):
