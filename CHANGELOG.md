@@ -20,3 +20,13 @@ Release to address some early PrPr feedbacks.
  * Added a simple e2e python notebook.
 ### Changed
 ### Fixed
+
+
+## 0.1.0 (2022-02-28)
+Merge PR contributions from community and update telemetry message.
+### Added
+ * [18](https://github.com/Snowflake-Labs/mlflow-snowflake/pull/18) Better error message for incompatible data types.
+ * [20](https://github.com/Snowflake-Labs/mlflow-snowflake/pull/20) Allow `predict` to return Snowpark DataFrame.
+### Changed
+ * Update telemetry message.
+### Fixed

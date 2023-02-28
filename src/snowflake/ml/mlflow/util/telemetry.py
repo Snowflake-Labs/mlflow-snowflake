@@ -21,8 +21,6 @@ def _get_time_millis() -> int:
 
 @unique
 class TelemetryField(Enum):
-    # Types of telemetry
-    TYPE_USAGE = "mlflow_plugin_usage"
     # Top level message keys for telemetry
     KEY_PYTHON_VERSION = "python_version"
     KEY_OS = "operating_system"
@@ -32,6 +30,9 @@ class TelemetryField(Enum):
     KEY_FUNC_NAME = "func_name"
     KEY_FUNC_PARAMS = "func_params"
     KEY_ERROR = "error"
+    KEY_PROJECT = "project"
+    KEY_SUBPROJECT = "subproject"
+    KEY_CATEGORY = "category"
 
 
 class TelemetryClient:
@@ -45,13 +46,15 @@ class TelemetryClient:
     def __init__(self, session: Session) -> None:
         self._client: PCTelemetryClient = session._conn._conn._telemetry
 
-    def _get_basic_data(self, telemetry_type: TelemetryField) -> Dict[str, str]:
+    def _get_basic_data(self) -> Dict[str, str]:
         message = {
-            PCTelemetryField.KEY_SOURCE.value: self._APPLICATION_NAME,
+            PCTelemetryField.KEY_SOURCE.value: "SnowML",
             TelemetryField.KEY_VERSION.value: self._CLIENT_VERSION,
             TelemetryField.KEY_PYTHON_VERSION.value: self._PYTHON_VERSION,
             TelemetryField.KEY_OS.value: self._OS_NAME,
-            PCTelemetryField.KEY_TYPE.value: telemetry_type.value,
+            PCTelemetryField.KEY_TYPE.value: "snowml_function_usage",
+            TelemetryField.KEY_PROJECT.value: "MLOps",
+            TelemetryField.KEY_SUBPROJECT.value: self._APPLICATION_NAME,
         }
         return message
 
@@ -75,11 +78,12 @@ class TelemetryClient:
             function_params (Dict[str, str]): Function parameters.
             error (Optional[str], optional): Error. Defaults to None.
         """
-        msg = self._get_basic_data(TelemetryField.TYPE_USAGE)
+        msg = self._get_basic_data()
         message = {
             **msg,
             TelemetryField.KEY_DATA.value: {
                 TelemetryField.KEY_FUNC_NAME.value: function_name,
+                TelemetryField.KEY_CATEGORY.value: "usage",
                 TelemetryField.KEY_FUNC_PARAMS.value: {**function_params},
             },
         }
