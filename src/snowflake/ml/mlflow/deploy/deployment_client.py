@@ -68,7 +68,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         return method_session_usage_logging_helper(fields_to_log=fields_to_log, sesssion_extractor=extract_session)
 
     @experimental
-    @usage_logging(fields_to_log={"name", "config"})
+    @usage_logging(fields_to_log={})
     def create_deployment(self, name, model_uri, flavor=None, config=None, endpoint=None):
         """Deploy the model to Snowflake as a UDF.
         This method blocks until the deployment operation is completed.
@@ -98,7 +98,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         }
 
     @experimental
-    @usage_logging(fields_to_log={"name", "config"})
+    @usage_logging(fields_to_log={})
     def delete_deployment(self, name, config=None, endpoint=None):
         """Delete the deployment with name `name` from Snowflake.
         Deletion is idempotent.
@@ -112,7 +112,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         self._deploy_helper.delete_deployment(name=name)
 
     @experimental
-    @usage_logging(fields_to_log={"name"})
+    @usage_logging(fields_to_log={})
     def get_deployment(self, name, endpoint=None):
         """Returns a dictionary describing the specified deployment created by the plugin
         under specified database/schema/role.
@@ -147,7 +147,7 @@ class SnowflakeDeploymentClient(BaseDeploymentClient):
         return [{"name": name, "signature": signature} for (name, signature) in self._deploy_helper.list_deployments()]
 
     @experimental
-    @usage_logging(fields_to_log={"deployment_name"})
+    @usage_logging(fields_to_log={})
     def predict(self, deployment_name=None, df=None, endpoint=None):
         """Compute predictions on the given dataframe using the specified deployment created by the plugin
         under specified database/schema/role.

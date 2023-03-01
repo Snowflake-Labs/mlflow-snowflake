@@ -32,8 +32,6 @@ def test_usage_logging(clean_session, mock_deployer, mock_send_usage):
     client.get_deployment("udf1")
     mock_send_usage.assert_called_once
     assert mock_send_usage.call_args.args[0] == "get_deployment"
-    assert mock_send_usage.call_args.args[1] == {"name": "'udf1'"}
-    assert mock_send_usage.call_args.args[2] is None
 
 
 def test_parse_config(clean_session):

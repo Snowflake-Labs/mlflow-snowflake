@@ -161,9 +161,11 @@ def test_telemetry_client(session):
     data = record_dict["message"][TelemetryField.KEY_DATA.value]
     assert data[TelemetryField.KEY_FUNC_NAME.value] == "f1"
     assert data[TelemetryField.KEY_FUNC_PARAMS.value] == {"a": "1"}
-    assert TelemetryField.KEY_ERROR.value not in data
-    assert record_dict["message"]["source"] == TelemetryClient._APPLICATION_NAME
-    assert record_dict["message"]["type"] == TelemetryField.TYPE_USAGE.value
+    assert TelemetryField.KEY_ERROR_INFO.value not in data
+    assert record_dict["message"]["source"] == "SnowML"
+    assert record_dict["message"]["type"] == "snowml_function_usage"
+    assert record_dict["message"]["project"] == "MLOps"
+    assert record_dict["message"]["subproject"] == "MLflowDeploymentPlugin"
 
 
 def test_usage_logging_helper_with_field_to_captured_missing():
