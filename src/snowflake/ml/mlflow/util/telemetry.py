@@ -29,7 +29,7 @@ class TelemetryField(Enum):
     # Message keys for `data`
     KEY_FUNC_NAME = "func_name"
     KEY_FUNC_PARAMS = "func_params"
-    KEY_ERROR = "error"
+    KEY_ERROR_INFO = "error_info"
     KEY_PROJECT = "project"
     KEY_SUBPROJECT = "subproject"
     KEY_CATEGORY = "category"
@@ -90,7 +90,7 @@ class TelemetryClient:
         if error:
             message = {
                 **message,
-                TelemetryField.KEY_ERROR.value: error,
+                TelemetryField.KEY_ERROR_INFO.value: error,
             }
         self.send(message)
         # Switch to flush per X second when there's increased usage.
